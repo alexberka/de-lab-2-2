@@ -2,6 +2,7 @@ import pandas as pd
 from io import BytesIO
 import csv
 import re
+from sqlalchemy import text
 
 def load_bdi3(blob_data)->pd.DataFrame:
     bdi3_df = pd.read_csv(BytesIO(blob_data))
@@ -81,11 +82,12 @@ def read_filtered(blob_data):
 def insert_data(data, db_class, session):
     for d in data:
         for key, value in d.items():
-            if value == 'null':
+            if value == 'null' or value == ''or (isinstance(value, str) and value.strip() == ''):
                 d[key] = None
     try:
         data_items = [db_class(**datum) for datum in data]
         print(data_items)
+        session.execute(text(f"CALL drop_table('{db_class.__tablename__}')"))
         session.add_all(data_items)
         session.commit()
     except Exception as e:
@@ -107,6 +109,7 @@ def process_bdi3_nulls(df:pd.DataFrame)-> pd.DataFrame:
 
     date_columns = df.filter(like="date").columns.to_list()
     df[date_columns] = df[date_columns].fillna('1/1/1900')
+    df['teids_child_id'] = df['teids_child_id'].fillna(0).astype(int) 
     return df
 
 def process_eco_nulls(df:pd.DataFrame)-> pd.DataFrame:

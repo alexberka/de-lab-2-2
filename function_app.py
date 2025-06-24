@@ -3,7 +3,7 @@ from azure.storage.blob import BlobServiceClient
 import azure.functions as func
 import logging
 import pandas as pd
-from sqlalchemy import create_engine, Column, String, Boolean, BigInteger, Date, Integer
+from sqlalchemy import create_engine, Column, String, Boolean, BigInteger, Date, Integer, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from utils import load_bdi3, load_eco, read_filtered, insert_data, process_bdi3_nulls, process_eco_nulls
@@ -44,7 +44,7 @@ def df_to_blob(df:pd.DataFrame, client:BlobServiceClient, filename):
 class Bdi(Base):
     __tablename__ = 'bdi'
     id = Column('id', Integer, primary_key=True, autoincrement=True, nullable=False)
-    teids_child_id = Column('teids_child_id', String)
+    teids_child_id = Column('teids_child_id', Integer)
     child_id = Column('child_id', String)
     location_sub_level_1 = Column('location_sub_level_1', String)
     adaptive_developmental_quotient = Column('adaptive_developmental_quotient', BigInteger)
@@ -73,7 +73,7 @@ class Bdi(Base):
 class Eco(Base):
     __tablename__ = 'eco'
     district = Column('district', String)
-    child_id = Column('child_id', String, primary_key=True)
+    child_id = Column('child_id', Integer, primary_key=True)
     eco_entry_date = Column('eco_entry_date', Date)
     eco_exit_date = Column('eco_exit_date', Date)
     exit_social_scale = Column('exit_social_scale', BigInteger)
@@ -183,9 +183,28 @@ def save_postgres(req) -> func.HttpResponse:
             "data saved to postgres successfully",
             status_code=200
         )
-    
     except Exception as e:
         return func.HttpResponse(
             f"An error occurred: {e}",
             status_code=500
         )
+    
+@app.route(route="parse_records")
+def parse_records(req) -> func.HttpResponse:
+    Session = sessionmaker(bind = engine)
+    session = Session()
+    try:
+        session.execute(text("CALL parse_records()"))
+        session.commit()
+        return func.HttpResponse(
+            "Successfully parsed",
+            status_code=200
+        )
+    except Exception as e:
+        session.rollback()
+        return func.HttpResponse(
+            f"An error occurred: {e}",
+            status_code=500
+        )
+    finally:
+        session.close()
