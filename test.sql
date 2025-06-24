@@ -14,9 +14,9 @@ select * from bdi;
 select * from eco_with_bdi;
 SELECT count() from eco_with_bdi;
 
-drop table if EXISTS bdi;
-drop table if EXISTS eco;
-DROP TABLE IF EXISTS eco_with_bdi;
+-- drop table if EXISTS bdi;
+-- drop table if EXISTS eco;
+-- DROP TABLE IF EXISTS eco_with_bdi;
 
 SELECT 
   eco.child_id,
@@ -68,8 +68,99 @@ ADD COLUMN entry_exam VARCHAR;
 
 --Make views to pull complete vs incomplete records
 
+--Add generated columns to eco_with_bdi table
+ALTER TABLE eco_with_bdi
+ADD COLUMN entry_exam TEXT GENERATED ALWAYS AS (
+	CASE
+		WHEN bdi_3_eco_entry_date <> '1900-01-01' THEN 'BDI-3'
+		WHEN bdi2_entry_date <> '1900-01-01' THEN 'BDI-2'
+		WHEN aepsi_eco_entry_date <> '1900-01-01' THEN 'AEPS'
+		ELSE 'NA'
+	END
+) STORED,
+ADD COLUMN missing_entry_date BOOLEAN GENERATED ALWAYS AS (
+	eco_entry_date = '1900-01-01'
+) STORED,
+ADD COLUMN missing_exit_date BOOLEAN GENERATED ALWAYS AS (
+	eco_exit_date = '1900-01-01'
+) STORED,
+ADD COLUMN mismatched_exit_dates BOOLEAN GENERATED ALWAYS AS (
+	eco_exit_date <> bdi_3_eco_exit_date
+) STORED,
+ADD COLUMN mismatched_exit_scores BOOLEAN GENERATED ALWAYS AS (
+	exit_social_scale <> bdi3_exit_social_scale
+	OR exit_knowledge_scale <> bdi3_exit_knowledge_scale
+	OR exit_appropriate_action_scale <> bdi3_exit_appropriate_action_scale
+) STORED,
+ADD COLUMN missing_developmental_quotients BOOLEAN GENERATED ALWAYS AS (
+	CASE
+		WHEN (adaptive_developmental_quotient = 0
+			OR adaptive_developmental_quotient IS NULL
+			OR social_emotional_developmental_quotient = 0
+			OR social_emotional_developmental_quotient IS NULL
+			OR communication_developmental_quotient = 0
+			OR communication_developmental_quotient IS NULL
+			OR motor_developmental_quotient = 0
+			OR motor_developmental_quotient IS NULL
+			OR cognitive_developmental_quotient = 0
+			OR cognitive_developmental_quotient IS NULL
+			OR bdi_3_total_developmental_quotient = 0
+			OR bdi_3_total_developmental_quotient IS NULL) THEN True
+		ELSE False
+	END
+) STORED;
 
-select bdi_3_eco_exit_date
-from eco;
+--Generate views
+CREATE OR REPLACE VIEW complete_records AS
+SELECT
+	child_id,
+	district,
+	eco_entry_date,
+	entry_exam,
+	eco_exit_date,
+	adaptive_developmental_quotient AS adaptive_dq,
+	social_emotional_developmental_quotient AS social_emotional_dq,
+	communication_developmental_quotient AS communication_dq,
+	motor_developmental_quotient AS motor_dq,
+	cognitive_developmental_quotient AS cognitive_dq,
+	bdi_3_total_developmental_quotient AS bdi_3_total_dq
+FROM eco_with_bdi
+WHERE (
+	missing_entry_date = False
+	AND missing_exit_date = False
+	AND mismatched_exit_dates = False
+	AND mismatched_exit_scores = False
+	AND missing_developmental_quotients = False
+	AND entry_exam <> 'NA'
+);
 
-select * from eco_with_bdi;
+CREATE OR REPLACE VIEW incomplete_records AS
+SELECT
+	child_id,
+	district,
+	eco_entry_date,
+	entry_exam,
+	eco_exit_date,
+	adaptive_developmental_quotient AS adaptive_dq,
+	social_emotional_developmental_quotient AS social_emotional_dq,
+	communication_developmental_quotient AS communication_dq,
+	motor_developmental_quotient AS motor_dq,
+	cognitive_developmental_quotient AS cognitive_dq,
+	bdi_3_total_developmental_quotient AS bdi_3_total_dq,
+	missing_entry_date,
+	missing_exit_date,
+	mismatched_exit_dates,
+	mismatched_exit_scores,
+	missing_developmental_quotients
+FROM eco_with_bdi
+WHERE (
+	missing_entry_date = True
+	OR missing_exit_date = True
+	OR mismatched_exit_dates = True
+	OR mismatched_exit_scores = True
+	OR missing_developmental_quotients = True
+	OR entry_exam = 'NA'
+);
+
+SELECT * FROM complete_records;
+SELECT * FROM incomplete_records;

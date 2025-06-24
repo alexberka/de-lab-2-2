@@ -1,7 +1,5 @@
 import pandas as pd
 from io import BytesIO
-from azure.storage.blob import BlobServiceClient
-import os
 import csv
 import re
 
