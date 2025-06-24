@@ -1,5 +1,4 @@
 import os
-from dotenv import load_dotenv
 from azure.storage.blob import BlobServiceClient
 import azure.functions as func
 import logging
@@ -8,8 +7,6 @@ from sqlalchemy import create_engine, Column, String, Boolean, BigInteger, Date,
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from utils import load_bdi3, load_eco, read_filtered, insert_data, process_bdi3_nulls, process_eco_nulls
-
-load_dotenv(override=True)
 
 USER = os.getenv('PG_USER')
 PASSWORD = os.getenv('PG_PASSWORD')
@@ -98,8 +95,6 @@ class Eco(Base):
     def __repr__(self):
         return f"<Eco(child_id='{self.child_id}', district='{self.district}')>"
 
-Base.metadata.create_all(engine)
-
 @app.route(route="read_bdi3")
 def read_bdi3(req) -> func.HttpResponse:
     try:
@@ -109,7 +104,7 @@ def read_bdi3(req) -> func.HttpResponse:
             container=CONTAINER_NAME,
             blob = FILE_NAME_BDI
         )
-        blob_data = blob_client.download_blob(offset=0, length=1024*1024).readall()  
+        blob_data = blob_client.download_blob().readall()  
         bdi3_data = load_bdi3(blob_data)
         
         bdi3_data = process_bdi3_nulls(bdi3_data)
@@ -134,7 +129,7 @@ def read_eco(req) -> func.HttpResponse:
             container=CONTAINER_NAME,
             blob = FILE_NAME_ECO
         )
-        blob_data = blob_client.download_blob(offset=0, length=1024*1024).readall()
+        blob_data = blob_client.download_blob().readall()
         eco_data = load_eco(blob_data)
 
         eco_data = process_eco_nulls(eco_data)
@@ -153,6 +148,7 @@ def read_eco(req) -> func.HttpResponse:
         
 @app.route(route="save_postgres")
 def save_postgres(req) -> func.HttpResponse:
+    Base.metadata.create_all(engine)
     filename = req.params.get('filename')
     
     if filename == 'bdi':

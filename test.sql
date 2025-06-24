@@ -14,9 +14,9 @@ select * from bdi;
 select * from eco_with_bdi;
 SELECT count() from eco_with_bdi;
 
-drop table if EXISTS bdi;
-drop table if EXISTS eco;
-DROP TABLE IF EXISTS eco_with_bdi;
+-- drop table if EXISTS bdi;
+-- drop table if EXISTS eco;
+-- DROP TABLE IF EXISTS eco_with_bdi;
 
 SELECT 
   eco.child_id,
