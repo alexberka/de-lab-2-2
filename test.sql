@@ -37,7 +37,6 @@ BEGIN
 	FROM eco
 	LEFT JOIN bdi
 	ON eco.child_id = bdi.teids_child_id
-	-- AND bdi.teids_child_id <> 'nan'
 	AND eco.eco_exit_date IN (
 		bdi.adaptive_self_care_date_of_testing,
 		bdi.adaptive_personal_responsibility_date_of_testing,
@@ -150,3 +149,33 @@ BEGIN
 	);
 END;
 $$;
+
+SELECT count(*) FROM complete_records;
+SELECT * FROM incomplete_records;
+SELECT * FROM complete_records;
+
+-- select * from eco_with_bdi;
+
+-- drop table if exists eco_with_bdi CASCADE;
+
+-- select * from bdi
+-- limit 10;
+-- select * from eco
+-- limit 10;
+
+-- select count(*) from bdi;
+-- select count(*) from eco;
+
+-- cast(bdi.teids_child_id::Float as integer);
+
+-- SELECT 
+-- 	column_name, 
+-- 	data_type 
+-- FROM 
+-- 	information_schema.columns 
+-- WHERE 
+-- 	table_name = 'eco';
+
+
+-- drop table if EXISTS bdi;
+-- drop table if exists eco;

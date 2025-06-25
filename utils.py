@@ -82,7 +82,7 @@ def read_filtered(blob_data):
 def insert_data(data, db_class, session):
     for d in data:
         for key, value in d.items():
-            if value == 'null' or value == ''or (isinstance(value, str) and value.strip() == ''):
+            if value == 'null' or value == ''or (isinstance(value, str) and value.strip() == ''):#copilot suggested code for handling empty, strings with whitespace alone
                 d[key] = None
     try:
         data_items = [db_class(**datum) for datum in data]
