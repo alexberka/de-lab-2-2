@@ -86,7 +86,6 @@ def insert_data(data, db_class, session):
                 d[key] = None
     try:
         data_items = [db_class(**datum) for datum in data]
-        print(data_items)
         session.execute(text(f"CALL drop_table('{db_class.__tablename__}')"))
         session.add_all(data_items)
         session.commit()

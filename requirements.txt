@@ -7,3 +7,4 @@ pandas
 dotenv
 sqlalchemy
 psycopg2-binary
+azure.storage.blob
